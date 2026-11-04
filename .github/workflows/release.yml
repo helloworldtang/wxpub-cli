@@ -1,0 +1,69 @@
+# 发版流水线：package.json 版本号变化 → 质量门 → npm 发版（OIDC trusted publishing）→ tag + GitHub Release
+#
+# 一次性配置：在 npmjs.com 的 wxpub 包设置页添加 Trusted Publisher：
+#   repository: helloworldtang/wxpub   workflow: release.yml   environment: 留空
+# 之后无需任何 NPM_TOKEN 长期凭证。
+#
+# 发版方式：改 package.json 的 version → commit → push main。版本未变的提交只跑质量门，不发版。
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write # 创建 tag 与 GitHub Release
+  id-token: write # npm OIDC trusted publishing
+
+jobs:
+  release:
+    name: 检版本并发版
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # node 24 自带 npm 11，支持 trusted publishing（OIDC 无 token 发布）
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: 质量门
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm test
+
+      - name: 构建产物
+        run: npm run build
+
+      - name: 检查版本是否为新（本地 vs npm registry）
+        id: version
+        run: |
+          LOCAL=$(node -p "require('./package.json').version")
+          REMOTE=$(npm view wxpub version 2>/dev/null || echo "none")
+          echo "version=$LOCAL"
+          echo "remote=$REMOTE"
+          if [ "$LOCAL" = "$REMOTE" ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "版本 $LOCAL 已发布，跳过发版"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: npm publish（trusted publishing + provenance）
+        if: steps.version.outputs.publish == 'true'
+        run: npm publish --provenance
+
+      - name: 打 tag 并创建 GitHub Release
+        if: steps.version.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v$VERSION" \
+            --title "wxpub v$VERSION" \
+            --notes "npm 包已发布：https://www.npmjs.com/package/wxpub/v$VERSION" \
+            --target "$GITHUB_SHA"
