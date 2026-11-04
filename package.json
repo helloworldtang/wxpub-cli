@@ -1,0 +1,45 @@
+{
+  "name": "wxpub",
+  "version": "0.1.0",
+  "description": "WeChat Official Account publishing CLI — markdown 直投公众号草稿箱（wechat-publish-service 客户端，API-Key 通道）",
+  "type": "module",
+  "bin": {
+    "wxpub": "dist/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build"
+  },
+  "keywords": [
+    "wechat",
+    "official-account",
+    "publish",
+    "markdown",
+    "cli"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^14.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^24.19.2",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "globals": "^16.0.0",
+    "prettier": "^3.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^3.0.0"
+  }
+}
