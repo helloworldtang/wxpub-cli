@@ -28,10 +28,11 @@ program
 
 program
   .command("login")
-  .description("登录（默认设备流：给个 URL 浏览器确认即得 JWT；也可 --api-key 贴密钥）")
+  .description("登录（凭据仍有效则直接返回；无凭据/过期走设备流：给个 URL 浏览器确认即得 JWT）")
   .option("--base-url <url>", "发文服务地址（默认 https://yyps.net）")
   .option("--api-key <key>", "手动通道：API Key（sk_…）或已有 JWT；不填则走设备流交互登录")
   .option("--auth <issuer>", "auth 服务地址（默认 https://auth.ai-as.cc）")
+  .option("--force", "跳过「凭据仍有效」检查，无条件重新走设备流（换账号用）", false)
   .action(async (options) => {
     await runLogin(options);
   });

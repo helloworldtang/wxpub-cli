@@ -4,10 +4,46 @@ import {
   DEVICE_CLIENT_ID,
   DEVICE_GRANT_URN,
   DeviceFlowError,
+  decodeJwtExp,
   discoverDeviceEndpoints,
   pollDeviceToken,
   requestDeviceAuthorization,
+  validateApiKey,
 } from "../src/device-auth.js";
+
+describe("智能登录凭据检查", () => {
+  it("decodeJwtExp：解出 exp；非 JWT / 无 exp 返回 null", () => {
+    const b64 = (obj: unknown) => Buffer.from(JSON.stringify(obj)).toString("base64url");
+    expect(decodeJwtExp(`header.${b64({ exp: 1900000000 })}.sig`)).toBe(1900000000);
+    expect(decodeJwtExp(`header.${b64({ sub: "1" })}.sig`)).toBeNull();
+    expect(decodeJwtExp("sk_live_abc")).toBeNull();
+    expect(decodeJwtExp("")).toBeNull();
+  });
+
+  it("validateApiKey：wire 契约 {api_key} → success/data.service_name；失败返回 null", async () => {
+    let captured: string | undefined;
+    let capturedBody: unknown;
+    const impl = async (url: string, init?: RequestInit) => {
+      captured = url;
+      capturedBody = JSON.parse(String(init?.body));
+      return jsonResponse(200, {
+        success: true,
+        data: { service_name: "wechat-publish", is_active: true },
+      });
+    };
+    const result = await validateApiKey("https://auth.example.com/", "sk_live_x", impl);
+    expect(result).toEqual({ serviceName: "wechat-publish" });
+    expect(captured).toBe("https://auth.example.com/api/keys/validate");
+    expect(capturedBody).toEqual({ api_key: "sk_live_x" });
+
+    const invalid = async () => jsonResponse(403, { error: "key 无效" });
+    expect(await validateApiKey("https://auth.example.com", "sk_live_bad", invalid)).toBeNull();
+    const unreachable = async () => {
+      throw new Error("network");
+    };
+    expect(await validateApiKey("https://auth.example.com", "sk_live_x", unreachable)).toBeNull();
+  });
+});
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {

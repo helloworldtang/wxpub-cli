@@ -73,20 +73,20 @@ wxpub-cli                    auth (AuthKeystone)                用户浏览器
 
 - **无新增攻击面**：公开 client_id 非秘密；端点经 discovery 本就公开；拿票前提=真实账号登录+浏览器批准+audience 白名单；包内零密钥
 - **优于旧通道的点**：旧 `sk_live_*` API Key 永不过期，泄露窗口是永久的；15 分钟票 + 每次重批，长期凭证暴露面下降
-- **已知残余风险与对策**：①设备流固有的"批准钓鱼"（诱导用户批陌生码）→ 批准页展示请求方/目标/scope 明细（已上线）+ 审计 `DEVICE_AUTHORIZED` 带 IP/UA；②auth 的 audience 白名单"空白名单=不限"默认语义 → 纪律：新 client 开设备流必须同时配 `allowed_resources`（auth TODO #28 挂账）
+- **已知残余风险与对策**：①设备流固有的"批准钓鱼"（诱导用户批陌生码）→ 批准页展示请求方/目标/scope 明细（已上线）+ 审计 `DEVICE_AUTHORIZED` 带 IP/UA；②auth 的 audience 白名单"空白名单=不限"默认语义 → 已强制化：设备流带 resource/audience 时空白名单即拒（`device_flow_resource_guard`），新 client 开设备流必须同时配 `allowed_resources`
 
 ## 3. 落地情况（截至 2026-11-05）
 
-| 层            | 内容                                                                                                                                                                      | 状态                                    |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| auth          | discovery 广播 `device_authorization_endpoint` + device_code/token-exchange grant URN；wire 断言测试钉住                                                                  | ✅ 已上线（`699ef18`）                  |
-| auth          | 设备流 `audience` 参数 → 直签 RFC 8693 委托票（`issue_delegation_for_user_id`；device_codes 加 audience 列）；DEVICE_FLOW.md 契约同步                                     | ✅ 已上线（`5e7c78d`）                  |
-| auth          | 批准页未登录断点修复：去登录带 `return_to` 回跳、user_code 保留                                                                                                           | ✅ 已上线（`676f9e4`）                  |
-| auth          | 批准页信息卡：`GET /api/device/info`（client 名/scope 分组/audience/状态），批准前可见"被批准的东西"                                                                      | ✅ 已上线（`bbd9514`）                  |
-| auth 线上配置 | `wxpub-cli` client：public + device_code grant + `allowed_resources=["client_wechat"]`                                                                                    | ✅ 已配置                               |
-| CLI           | `src/device-auth.ts`：发现/发起/轮询（pending/slow_down/access_denied/expired_token 全处理），fetch/sleep 依赖注入可测；无参 `wxpub login` 交互流；`--api-key` 旧通道兼容 | ✅ v0.2.0 已发 npm                      |
-| CLI           | 智能登录：凭据仍有效时跳过浏览器、`--force` 强制重授权                                                                                                                    | ⏳ **方案已定，待实现**（见 §4 场景 D） |
-| auth          | 批准时补写 delegation_grants 持久记录（管理台"我的授权"可见）                                                                                                             | ⏸ 可选增强，未排期                      |
+| 层            | 内容                                                                                                                                                                      | 状态                      |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| auth          | discovery 广播 `device_authorization_endpoint` + device_code/token-exchange grant URN；wire 断言测试钉住                                                                  | ✅ 已上线（`699ef18`）    |
+| auth          | 设备流 `audience` 参数 → 直签 RFC 8693 委托票（`issue_delegation_for_user_id`；device_codes 加 audience 列）；DEVICE_FLOW.md 契约同步                                     | ✅ 已上线（`5e7c78d`）    |
+| auth          | 批准页未登录断点修复：去登录带 `return_to` 回跳、user_code 保留                                                                                                           | ✅ 已上线（`676f9e4`）    |
+| auth          | 批准页信息卡：`GET /api/device/info`（client 名/scope 分组/audience/状态），批准前可见"被批准的东西"                                                                      | ✅ 已上线（`bbd9514`）    |
+| auth 线上配置 | `wxpub-cli` client：public + device_code grant + `allowed_resources=["client_wechat"]`                                                                                    | ✅ 已配置                 |
+| CLI           | `src/device-auth.ts`：发现/发起/轮询（pending/slow_down/access_denied/expired_token 全处理），fetch/sleep 依赖注入可测；无参 `wxpub login` 交互流；`--api-key` 旧通道兼容 | ✅ v0.2.0 已发 npm        |
+| CLI           | 智能登录：凭据仍有效时跳过浏览器（JWT 本地解 exp / sk_ 走 keys/validate）、`--force` 强制重授权                                                                           | ✅ 已实现（见 §4 场景 D） |
+| auth          | #28 白名单强制化（带 resource/audience 的设备授权空白名单即拒）+ 批准带 audience 时 upsert delegation_grants 持久记录（管理台"我的授权"可见，线上实证落行）               | ✅ 已上线（`dfa8d28`）    |
 
 **真机验收证据**（2026-11-05）：`wxpub login` 浏览器批准 → 委托票 claims 断言（aud/delegation/act/org_id=1）→ `wxpub theme -a danxin` 200。
 
@@ -127,20 +127,23 @@ $ wxpub publish -a danxin -f article.md                      # 换新票，继�
 ✓ 已投递草稿箱 media_id=MzIxN…
 ```
 
-### 场景 D：已有有效凭据再执行 `wxpub login` ——**当前行为 vs 已定方案**
+### 场景 D：已有有效凭据再执行 `wxpub login`（智能登录，已实现）
 
-**当前（v0.2.x，流派一"login=显式重授权"）**：不检查现有凭据，无条件走设备流，成功后**静默覆盖**配置（旧 key 不备份、不吊销、无提示；中途拒绝/超时则旧配置不动）。
-
-**已定待实现（流派二"智能登录"，目标 v0.3.x）**：
+**行为（流派二"智能登录"，v0.2.x 之前是无条件重授权，已改）**：先查现有凭据，仍有效直接返回、不弹浏览器；无效/过期/无凭据才走设备流。`--api-key` 显式给了就不检查（意图明确就是要换凭据）。
 
 ```text
 $ wxpub login                          # 凭据仍有效时：
-凭据仍有效（委托票，剩 7 分钟），未重新授权。强制重登用 wxpub login --force
+凭据仍有效（委托票，剩 7 分钟），未重新授权。
+强制重登用：wxpub login --force
+
+$ wxpub login                          # 持有有效 sk_ key 时：
+API Key 长期有效（wechat-publish），无需登录。
+强制走设备流用：wxpub login --force
 
 $ wxpub login --force                  # 显式重授权：跳过检查，走设备流（换账号/agent 脚本用）
 ```
 
-检查逻辑：JWT 本地解 `exp`（剩 >1 分钟视为有效，零网络请求）；`sk_live_*` 调 auth `/api/keys/validate`。
+检查逻辑：JWT 本地解 `exp`（剩 >1 分钟视为有效，零网络请求）；`sk_live_*` 调 auth `/api/keys/validate`（无效/网络失败均降级走设备流）。凭据优先级与环境变量语义一致（`WXPUB_API_KEY` > 配置文件），skip 提示会标注凭据来自环境变量的情形。
 
 ### 场景 E：换身份 / 换账号
 

@@ -129,6 +129,50 @@ export async function requestDeviceAuthorization(
   };
 }
 
+/** 解码 JWT payload 的 exp（秒级时间戳）；非 JWT / 无 exp 返回 null。 */
+export function decodeJwtExp(token: string): number | null {
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  try {
+    const payload = JSON.parse(atobUrl(parts[1] ?? "")) as { exp?: unknown };
+    return typeof payload.exp === "number" ? payload.exp : null;
+  } catch {
+    return null;
+  }
+}
+
+function atobUrl(s: string): string {
+  const b64 = s.replace(/-/g, "+").replace(/_/g, "/");
+  return Buffer.from(b64, "base64").toString("utf8");
+}
+
+/**
+ * 校验 auth 签发的 API Key（POST /api/keys/validate）。
+ * 有效返回 key 描述；无效/网络失败返回 null（调用方降级走设备流）。
+ */
+export async function validateApiKey(
+  authIssuer: string,
+  apiKey: string,
+  fetchImpl: FetchLike = fetch,
+): Promise<{ serviceName: string } | null> {
+  try {
+    const resp = await fetchImpl(`${authIssuer.replace(/\/+$/, "")}/api/keys/validate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ api_key: apiKey }),
+    });
+    if (!resp.ok) return null;
+    const body = (await resp.json().catch(() => null)) as {
+      success?: boolean;
+      data?: { service_name?: string };
+    } | null;
+    if (body?.success !== true) return null;
+    return { serviceName: body.data?.service_name ?? "API Key" };
+  } catch {
+    return null; // 网络失败不拦登录——设备流反正也要联网，让它给出更准确的错误
+  }
+}
+
 /**
  * 轮询 token 端点直到批准/失败/过期。
  * authorization_pending → 继续等；slow_down → 间隔 +5s；其余错误（access_denied /
