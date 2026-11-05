@@ -12,6 +12,8 @@ npm install -g wxpub-cli@0.2.0
 
 装好后两个命令等价可用：`wxpub`（短，日常用）和 `wxpub-cli`（与包名一致）。文档以 `wxpub` 示例。
 
+再跑一次 `wxpub install`，把 **wxpub skill** 装进 Claude Code（`~/.claude/skills/wxpub/`）——之后在任何会话里说"把这篇文章发到丹心"，agent 就会自动走 `tone 拉调性 → 写作 → illustrate 配图 → publish 投递` 全链路，无需教它命令。
+
 > 旧包 `wxpub@0.1.0` 已更名，请改用 `wxpub-cli`（命令 `wxpub` 保持不变）。
 
 要求 Node.js >= 20。
@@ -131,4 +133,5 @@ node dist/index.js --help
 
 ## 路线图
 
+- ✅ v0.3：`wxpub install` 分发 Agent Skill（遵循 [Agent Skills 开放规范](https://agentskills.io/specification)），Claude Code 自动发现发文工作流
 - ✅ v0.2：`wxpub tone` 拉账号调性（写文前注入 agent 上下文）；`wxpub illustrate` AI 生成文中插图（依赖服务端 `/api/mp/account-tone` 与 `/api/mp/ai-image`）

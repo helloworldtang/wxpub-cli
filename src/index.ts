@@ -7,6 +7,7 @@ import { Command } from "commander";
 import { WxpubApiError } from "./client.js";
 import { runImage } from "./commands/image.js";
 import { runIllustrate } from "./commands/illustrate.js";
+import { runInstall } from "./commands/install.js";
 import { runLogin } from "./commands/login.js";
 import { runMaterials } from "./commands/materials.js";
 import { runMe } from "./commands/me.js";
@@ -40,6 +41,13 @@ program
   .description("查看登录态与服务健康")
   .action(async () => {
     await runMe({ json: program.opts().json });
+  });
+
+program
+  .command("install")
+  .description("把 wxpub skill 装进 Claude Code（~/.claude/skills/，agent 学会发文工作流）")
+  .action(() => {
+    runInstall({ json: program.opts().json });
   });
 
 program
