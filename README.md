@@ -7,7 +7,7 @@
 ## 安装
 
 ```bash
-npm install -g wxpub-cli@0.1.1
+npm install -g wxpub-cli@0.2.0
 ```
 
 装好后两个命令等价可用：`wxpub`（短，日常用）和 `wxpub-cli`（与包名一致）。文档以 `wxpub` 示例。
