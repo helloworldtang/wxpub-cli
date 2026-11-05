@@ -1,10 +1,11 @@
 {
-  "name": "wxpub",
-  "version": "0.1.0",
+  "name": "wxpub-cli",
+  "version": "0.1.1",
   "description": "WeChat Official Account publishing CLI — markdown 直投公众号草稿箱（wechat-publish-service 客户端，API-Key 通道）",
   "type": "module",
   "bin": {
-    "wxpub": "dist/index.js"
+    "wxpub": "dist/index.js",
+    "wxpub-cli": "dist/index.js"
   },
   "files": [
     "dist",

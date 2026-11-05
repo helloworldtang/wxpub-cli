@@ -1,4 +1,4 @@
-# wxpub
+# wxpub-cli
 
 公众号发文 CLI —— 一条命令把 Markdown 文章投进指定公众号的草稿箱。
 
@@ -7,12 +7,16 @@
 ## 安装
 
 ```bash
-npm install -g wxpub@0.1.0
+npm install -g wxpub-cli@0.1.1
 ```
+
+装好后两个命令等价可用：`wxpub`（短，日常用）和 `wxpub-cli`（与包名一致）。文档以 `wxpub` 示例。
+
+> 旧包 `wxpub@0.1.0` 已更名，请改用 `wxpub-cli`（命令 `wxpub` 保持不变）。
 
 要求 Node.js >= 20。
 
-> ⚠️ 请从 npm registry 安装并锁定版本。不要引用仓库滚动分支/tarball（如 `github:…/wxpub#main`）——那会让每次 `npm install` 隐性升级到未审阅代码；升级必须是显式改版本号的决策动作。
+> ⚠️ 请从 npm registry 安装并锁定版本。不要引用仓库滚动分支/tarball（如 `github:…/wxpub-cli#main`）——那会让每次 `npm install` 隐性升级到未审阅代码；升级必须是显式改版本号的决策动作。
 
 ## 快速开始
 
