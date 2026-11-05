@@ -142,3 +142,65 @@ describe("WxpubClient.uploadImage（multipart 契约）", () => {
     expect((file as File).name).toBe("cover.png");
   });
 });
+
+describe("WxpubClient.accountTone（传输层契约）", () => {
+  it("GET + account 查询参数；解析 tone 的 wire 字段", async () => {
+    const { captured, impl } = captureFetch(200, {
+      success: true,
+      account: "danxin",
+      tone: {
+        name: "丹心·工程叙事",
+        persona: "冷静的工程叙事者",
+        style_rules: "问题-排查-根因-复盘",
+        length_min: 1200,
+        length_max: 2500,
+      },
+    });
+    const result = await makeClient(impl).accountTone("danxin");
+    expect(result.tone?.persona).toBe("冷静的工程叙事者");
+    expect(result.tone?.lengthMax).toBe(2500);
+    expect(captured[0]?.url).toBe("https://yyps.net/api/mp/account-tone?account=danxin");
+    expect(captured[0]?.init?.method).toBe("GET");
+  });
+
+  it("tone=null 表示未绑定，正常返回不报错", async () => {
+    const { impl } = captureFetch(200, { success: true, account: "danxin", tone: null });
+    const result = await makeClient(impl).accountTone("danxin");
+    expect(result.tone).toBeNull();
+  });
+
+  it("未知账号 404 抛 WxpubApiError", async () => {
+    const { impl } = captureFetch(404, { message: "未知账号: nobody" });
+    await expect(makeClient(impl).accountTone("nobody")).rejects.toThrow(WxpubApiError);
+  });
+});
+
+describe("WxpubClient.generateIllustration（传输层契约）", () => {
+  it("POST JSON：account/text 必带 + timestamp 防重放 + title/preset_id 映射", async () => {
+    const { captured, impl } = captureFetch(200, {
+      success: true,
+      media_id: "M1",
+      url: "https://mmbiz.qpic.cn/pic",
+      markdown: "![配图](https://mmbiz.qpic.cn/pic)",
+      prompt: "深色厂房,红色发光管道",
+    });
+    const result = await makeClient(impl).generateIllustration("danxin", "正文文本", {
+      title: "标题",
+      presetId: 7,
+    });
+    expect(result.markdown).toContain("mmbiz");
+    const body = JSON.parse(String(captured[0]?.init?.body)) as Record<string, unknown>;
+    expect(body.account).toBe("danxin");
+    expect(body.text).toBe("正文文本");
+    expect(body.title).toBe("标题");
+    expect(body.preset_id).toBe(7);
+    expect(typeof body.timestamp).toBe("number");
+  });
+
+  it("业务失败（HTTP 200 + success:false）抛带 message 的错误", async () => {
+    const { impl } = captureFetch(200, { success: false, message: "未配置图像生成厂商" });
+    await expect(makeClient(impl).generateIllustration("danxin", "文本")).rejects.toThrow(
+      /未配置图像生成厂商/,
+    );
+  });
+});

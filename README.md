@@ -69,6 +69,22 @@ wxpub publish -a <account> -f article.md [options]
 - 同内容重复投递会被服务端幂等去重（返回 `duplicate: true`），不会新建草稿
 - 只落草稿箱，**不群发**；群发请在公众号后台人工确认
 
+### `tone` — 拉账号写作调性（写文前注入）
+
+```bash
+wxpub tone -a danxin
+# 输出主笔人设（persona）+ 结构规则（style_rules）+ 建议字数区间
+# AI/agent 写文前先跑这个，把调性注入上下文，保证成稿跟号调性一致
+```
+
+### `illustrate` — AI 生成正文配图
+
+```bash
+wxpub illustrate -a danxin -f article.md [-t 标题] [--preset <模板id>]
+# LLM 读全文提炼画面 prompt → 出图 → 上传永久素材
+# 输出可直接粘贴进 markdown 的 ![](mmbiz url) 片段；约 10-60 秒
+```
+
 ### `theme` — 查询账号默认主题
 
 ```bash
@@ -100,7 +116,7 @@ wxpub --json theme -a danxin
 # {"account":"danxin","theme_key":"green","theme_name":"品牌绿"}
 ```
 
-agent 典型工作流：`theme` 确认账号主题 → 写 markdown → `image` 传配图 → `publish` 投递 → 从 JSON 里取 `media_id` 复命。
+agent 典型工作流：`tone` 拉调性 → 按调性写 markdown → `illustrate` 生成插图 → `publish` 投递 → 从 JSON 里取 `media_id` 复命。
 
 ## 开发
 
@@ -115,4 +131,4 @@ node dist/index.js --help
 
 ## 路线图
 
-- v0.2（依赖服务端增量）：`wxpub tone` 拉账号调性（写文前注入 agent 上下文）；`wxpub illustrate` AI 生成文中插图
+- ✅ v0.2：`wxpub tone` 拉账号调性（写文前注入 agent 上下文）；`wxpub illustrate` AI 生成文中插图（依赖服务端 `/api/mp/account-tone` 与 `/api/mp/ai-image`）

@@ -6,11 +6,13 @@ import { Command } from "commander";
 
 import { WxpubApiError } from "./client.js";
 import { runImage } from "./commands/image.js";
+import { runIllustrate } from "./commands/illustrate.js";
 import { runLogin } from "./commands/login.js";
 import { runMaterials } from "./commands/materials.js";
 import { runMe } from "./commands/me.js";
 import { runPublish } from "./commands/publish.js";
 import { runTheme } from "./commands/theme.js";
+import { runTone } from "./commands/tone.js";
 
 // 版本号单一真源 = package.json（发版只改那里，--version 永远同步）
 const { version } = createRequire(import.meta.url)("../package.json") as { version: string };
@@ -58,6 +60,27 @@ program
   .option("--force", "跳过幂等去重，强制创建新草稿", false)
   .action(async (options) => {
     await runPublish({ ...options, json: program.opts().json });
+  });
+
+program
+  .command("tone")
+  .description("拉账号绑定的写作调性（AI 写文前注入上下文，保证成稿跟号调性一致）")
+  .requiredOption("-a, --account <key>", "公众号账号 key")
+  .action(async (options) => {
+    await runTone({ ...options, json: program.opts().json });
+  });
+
+program
+  .command("illustrate")
+  .description("AI 生成正文配图，输出可直接粘贴进 markdown 的插图片段（约 10-60 秒）")
+  .requiredOption("-a, --account <key>", "公众号账号 key")
+  .requiredOption("-f, --file <path>", "markdown 文件（取其全文作为配图依据）")
+  .option("-t, --title <title>", "文章标题（辅助 LLM 提炼画面）")
+  .option("--preset <id>", "配图模板 id（服务端 image_presets）", (value) =>
+    Number.parseInt(value, 10),
+  )
+  .action(async (options) => {
+    await runIllustrate({ ...options, json: program.opts().json });
   });
 
 program

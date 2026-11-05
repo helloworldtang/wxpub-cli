@@ -102,6 +102,34 @@ export interface UploadResult {
   url?: string;
 }
 
+/** 账号绑定的写作调性（persona 人设 + style_rules 结构规则 + 建议字数区间）。 */
+export interface TonePreset {
+  name: string;
+  persona: string;
+  styleRules: string;
+  lengthMin?: number;
+  lengthMax?: number;
+}
+
+export interface AccountToneResult {
+  ok: boolean;
+  account: string;
+  /** null = 账号未绑定调性（或已删/停用），回落无调性写作 */
+  tone: TonePreset | null;
+}
+
+export interface IllustrationResult {
+  ok: boolean;
+  message: string;
+  mediaId?: string;
+  /** mmbiz URL，可直接内嵌 markdown 正文 */
+  url?: string;
+  /** 现成的插图片段 ![配图](url) */
+  markdown?: string;
+  /** 服务端 LLM 提炼的画面 prompt（透明度/复用价值） */
+  prompt?: string;
+}
+
 /** 服务端错误（4xx/5xx 或业务失败），携带状态码与响应体。 */
 export class WxpubApiError extends Error {
   readonly status: number;
@@ -272,6 +300,63 @@ export class WxpubClient {
       message: (body.message as string) || "",
       totalCount: (body.total_count as number) ?? items.length,
       items,
+    };
+  }
+
+  /** 查询账号绑定的写作调性（写文前注入上下文；未绑定返回 tone=null）。 */
+  async accountTone(account: string): Promise<AccountToneResult> {
+    const body = (await this.request(
+      `/api/mp/account-tone?account=${encodeURIComponent(account)}`,
+      { method: "GET", headers: this.authHeaders() },
+    )) as Record<string, unknown>;
+    if (body.success !== true) {
+      throw new WxpubApiError((body.message as string) || "查询账号调性失败", 0, body);
+    }
+    const tone = body.tone as Record<string, unknown> | null | undefined;
+    return {
+      ok: true,
+      account: (body.account as string) ?? account,
+      tone: tone
+        ? {
+            name: (tone.name as string) || "",
+            persona: (tone.persona as string) || "",
+            styleRules: (tone.style_rules as string) || "",
+            lengthMin: typeof tone.length_min === "number" ? tone.length_min : undefined,
+            lengthMax: typeof tone.length_max === "number" ? tone.length_max : undefined,
+          }
+        : null,
+    };
+  }
+
+  /** AI 生成正文配图（LLM 提炼 prompt → 出图 → 上传素材）。耗时 10-60s，注意超时。 */
+  async generateIllustration(
+    account: string,
+    text: string,
+    options: { title?: string; presetId?: number } = {},
+  ): Promise<IllustrationResult> {
+    const payload: Record<string, unknown> = {
+      account,
+      text,
+      timestamp: Math.floor(Date.now() / 1000),
+    };
+    if (options.title !== undefined) payload.title = options.title;
+    if (options.presetId !== undefined) payload.preset_id = options.presetId;
+    const body = (await this.request("/api/mp/ai-image", {
+      method: "POST",
+      headers: { ...this.authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })) as Record<string, unknown>;
+    // mp 通道业务失败也是 HTTP 200 + success:false + message（生图失败不阻断语义）
+    if (body.success !== true) {
+      throw new WxpubApiError((body.message as string) || "生成配图失败", 0, body);
+    }
+    return {
+      ok: true,
+      mediaId: (body.media_id as string) || undefined,
+      url: (body.url as string) || undefined,
+      markdown: (body.markdown as string) || undefined,
+      prompt: (body.prompt as string) || undefined,
+      message: (body.message as string) || "",
     };
   }
 
