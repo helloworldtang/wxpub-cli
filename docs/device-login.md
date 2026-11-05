@@ -63,11 +63,11 @@ wxpub-cli                    auth (AuthKeystone)                用户浏览器
 
 ### 2.3 时效与凭据形态
 
-| 项 | 值 | 说明 |
-|---|---|---|
-| 设备码等待批准窗口 | 600s（10 分钟） | 覆盖"浏览器登录+批准"全过程，超时 `expired_token` |
-| **委托票（CLI 有效身份）** | **900s（15 分钟）** | `DELEGATION_TOKEN_TTL_SECS`（auth 侧 env 可调，与 token exchange 委托码共用）；**无 refresh token**，到期整票作废、重新 `wxpub login` |
-| 委托票 claims | `sub`=批准用户 / `aud`=client_wechat / `token_type`=delegation / `act.sub`=wxpub-cli / `org_id` 恒带 | 服务端 JWKS 验签 + introspect 实时回填权限 |
+| 项                         | 值                                                                                                   | 说明                                                                                                                                  |
+| -------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 设备码等待批准窗口         | 600s（10 分钟）                                                                                      | 覆盖"浏览器登录+批准"全过程，超时 `expired_token`                                                                                     |
+| **委托票（CLI 有效身份）** | **900s（15 分钟）**                                                                                  | `DELEGATION_TOKEN_TTL_SECS`（auth 侧 env 可调，与 token exchange 委托码共用）；**无 refresh token**，到期整票作废、重新 `wxpub login` |
+| 委托票 claims              | `sub`=批准用户 / `aud`=client_wechat / `token_type`=delegation / `act.sub`=wxpub-cli / `org_id` 恒带 | 服务端 JWKS 验签 + introspect 实时回填权限                                                                                            |
 
 ### 2.4 安全性质
 
@@ -77,16 +77,16 @@ wxpub-cli                    auth (AuthKeystone)                用户浏览器
 
 ## 3. 落地情况（截至 2026-11-05）
 
-| 层 | 内容 | 状态 |
-|---|---|---|
-| auth | discovery 广播 `device_authorization_endpoint` + device_code/token-exchange grant URN；wire 断言测试钉住 | ✅ 已上线（`699ef18`） |
-| auth | 设备流 `audience` 参数 → 直签 RFC 8693 委托票（`issue_delegation_for_user_id`；device_codes 加 audience 列）；DEVICE_FLOW.md 契约同步 | ✅ 已上线（`5e7c78d`） |
-| auth | 批准页未登录断点修复：去登录带 `return_to` 回跳、user_code 保留 | ✅ 已上线（`676f9e4`） |
-| auth | 批准页信息卡：`GET /api/device/info`（client 名/scope 分组/audience/状态），批准前可见"被批准的东西" | ✅ 已上线（`bbd9514`） |
-| auth 线上配置 | `wxpub-cli` client：public + device_code grant + `allowed_resources=["client_wechat"]` | ✅ 已配置 |
-| CLI | `src/device-auth.ts`：发现/发起/轮询（pending/slow_down/access_denied/expired_token 全处理），fetch/sleep 依赖注入可测；无参 `wxpub login` 交互流；`--api-key` 旧通道兼容 | ✅ v0.2.0 已发 npm |
-| CLI | 智能登录：凭据仍有效时跳过浏览器、`--force` 强制重授权 | ⏳ **方案已定，待实现**（见 §4 场景 D） |
-| auth | 批准时补写 delegation_grants 持久记录（管理台"我的授权"可见） | ⏸ 可选增强，未排期 |
+| 层            | 内容                                                                                                                                                                      | 状态                                    |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| auth          | discovery 广播 `device_authorization_endpoint` + device_code/token-exchange grant URN；wire 断言测试钉住                                                                  | ✅ 已上线（`699ef18`）                  |
+| auth          | 设备流 `audience` 参数 → 直签 RFC 8693 委托票（`issue_delegation_for_user_id`；device_codes 加 audience 列）；DEVICE_FLOW.md 契约同步                                     | ✅ 已上线（`5e7c78d`）                  |
+| auth          | 批准页未登录断点修复：去登录带 `return_to` 回跳、user_code 保留                                                                                                           | ✅ 已上线（`676f9e4`）                  |
+| auth          | 批准页信息卡：`GET /api/device/info`（client 名/scope 分组/audience/状态），批准前可见"被批准的东西"                                                                      | ✅ 已上线（`bbd9514`）                  |
+| auth 线上配置 | `wxpub-cli` client：public + device_code grant + `allowed_resources=["client_wechat"]`                                                                                    | ✅ 已配置                               |
+| CLI           | `src/device-auth.ts`：发现/发起/轮询（pending/slow_down/access_denied/expired_token 全处理），fetch/sleep 依赖注入可测；无参 `wxpub login` 交互流；`--api-key` 旧通道兼容 | ✅ v0.2.0 已发 npm                      |
+| CLI           | 智能登录：凭据仍有效时跳过浏览器、`--force` 强制重授权                                                                                                                    | ⏳ **方案已定，待实现**（见 §4 场景 D） |
+| auth          | 批准时补写 delegation_grants 持久记录（管理台"我的授权"可见）                                                                                                             | ⏸ 可选增强，未排期                      |
 
 **真机验收证据**（2026-11-05）：`wxpub login` 浏览器批准 → 委托票 claims 断言（aud/delegation/act/org_id=1）→ `wxpub theme -a danxin` 200。
 
