@@ -35,7 +35,7 @@ wxpub publish --account danxin --file article.md
 wxpub me
 ```
 
-设备流走 auth（AuthKeystone）标准协议：RFC 8414 发现 → RFC 8628 设备授权 → 批准后签 RFC 8693 委托票（`aud=client_wechat`，服务端按委托票验票）。全程零密钥经手、端点零硬编码。
+设备流走 auth（AuthKeystone）标准协议：RFC 8414 发现 → RFC 8628 设备授权 → 批准后签 RFC 8693 委托票（`aud=client_wechat`，服务端按委托票验票）。全程零密钥经手、端点零硬编码。原理、时效与各场景 UX（首次/过期重登/未登录浏览器/无人值守等）详见 [设备流登录场景全记录](docs/device-login.md)。
 
 旧通道仍可用：`wxpub login --base-url https://yyps.net --api-key sk_live_xxx`（API Key 由服务端签发，长期有效）。
 
