@@ -25,11 +25,12 @@ program
 
 program
   .command("login")
-  .description("配置服务地址与 API Key（保存到 ~/.wxpub/config.json）")
-  .requiredOption("--base-url <url>", "服务地址，如 https://yyps.net")
-  .requiredOption("--api-key <key>", "API Key（sk_…）")
-  .action((options) => {
-    runLogin(options);
+  .description("登录（默认设备流：给个 URL 浏览器确认即得 JWT；也可 --api-key 贴密钥）")
+  .option("--base-url <url>", "发文服务地址（默认 https://yyps.net）")
+  .option("--api-key <key>", "手动通道：API Key（sk_…）或已有 JWT；不填则走设备流交互登录")
+  .option("--auth <issuer>", "auth 服务地址（默认 https://auth.ai-as.cc）")
+  .action(async (options) => {
+    await runLogin(options);
   });
 
 program

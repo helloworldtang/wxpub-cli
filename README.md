@@ -21,8 +21,10 @@ npm install -g wxpub-cli@0.1.1
 ## 快速开始
 
 ```bash
-# 1. 配置服务地址与 API Key（保存到 ~/.wxpub/config.json）
-wxpub login --base-url https://yyps.net --api-key sk_live_xxx
+# 1. 登录（推荐：设备流交互登录——给个 URL 浏览器确认即得短时效委托票，无需手动贴 Key）
+wxpub login
+#   → 打开 https://auth.ai-as.cc/admin/#/device?user_code=XXXX-XXXX 批准即可
+#   委托票有时效（约 15 分钟），过期重跑 wxpub login
 
 # 2. 发文（markdown 直传，渲染与主题判定在服务端完成）
 wxpub publish --account danxin --file article.md
@@ -30,6 +32,10 @@ wxpub publish --account danxin --file article.md
 # 3. 检查登录态与服务健康
 wxpub me
 ```
+
+设备流走 auth（AuthKeystone）标准协议：RFC 8414 发现 → RFC 8628 设备授权 → 批准后签 RFC 8693 委托票（`aud=client_wechat`，服务端按委托票验票）。全程零密钥经手、端点零硬编码。
+
+旧通道仍可用：`wxpub login --base-url https://yyps.net --api-key sk_live_xxx`（API Key 由服务端签发，长期有效）。
 
 API Key 由服务端签发（管理后台或 `scripts/generate_api_key.py`）。
 
