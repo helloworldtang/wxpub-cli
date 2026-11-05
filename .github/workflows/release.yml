@@ -44,7 +44,7 @@ jobs:
         run: |
           LOCAL=$(node -p "require('./package.json').version")
           REMOTE=$(npm view wxpub-cli version 2>/dev/null || echo "none")
-          echo "version=$LOCAL"
+          echo "version=$LOCAL" >> "$GITHUB_OUTPUT"
           echo "remote=$REMOTE"
           if [ "$LOCAL" = "$REMOTE" ]; then
             echo "publish=false" >> "$GITHUB_OUTPUT"
