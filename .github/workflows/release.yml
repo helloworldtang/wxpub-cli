@@ -39,14 +39,20 @@ jobs:
       - name: 构建产物
         run: npm run build
 
-      - name: 检查版本是否为新（本地 vs npm registry）
+      - name: 检查版本是否为新（tag 为主判据，npm registry 为辅）
         id: version
         run: |
           LOCAL=$(node -p "require('./package.json').version")
           REMOTE=$(npm view wxpub-cli version 2>/dev/null || echo "none")
           echo "version=$LOCAL" >> "$GITHUB_OUTPUT"
           echo "remote=$REMOTE"
-          if [ "$LOCAL" = "$REMOTE" ]; then
+          # 主判据=tag 存在性（本流水线发版成功即建 tag，不受 npm CDN 延迟影响；
+          # 2026-11-05 实证：CDN 延迟让 npm view 返回旧版，重发已存在版本 E409）
+          TAG_EXISTS=$(git ls-remote --tags origin "refs/tags/v$LOCAL" | wc -l | tr -d ' ')
+          if [ "$TAG_EXISTS" -gt 0 ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "tag v$LOCAL 已存在，版本已发过，跳过发版"
+          elif [ "$LOCAL" = "$REMOTE" ]; then
             echo "publish=false" >> "$GITHUB_OUTPUT"
             echo "版本 $LOCAL 已发布，跳过发版"
           else
@@ -55,7 +61,16 @@ jobs:
 
       - name: npm publish（trusted publishing + provenance）
         if: steps.version.outputs.publish == 'true'
-        run: npm publish --provenance
+        run: |
+          set +e
+          output=$(npm publish --provenance 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          # E409=版本已存在（并发发布/CDN 延迟误判），视为已发布继续建 Release
+          if [ $status -ne 0 ] && ! echo "$output" | grep -q "409"; then
+            exit $status
+          fi
 
       - name: 打 tag 并创建 GitHub Release
         if: steps.version.outputs.publish == 'true'
