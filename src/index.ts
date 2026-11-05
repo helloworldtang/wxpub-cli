@@ -1,21 +1,26 @@
 #!/usr/bin/env node
 
+import { createRequire } from "node:module";
+
 import { Command } from "commander";
 
+import { WxpubApiError } from "./client.js";
 import { runImage } from "./commands/image.js";
 import { runLogin } from "./commands/login.js";
 import { runMaterials } from "./commands/materials.js";
 import { runMe } from "./commands/me.js";
 import { runPublish } from "./commands/publish.js";
 import { runTheme } from "./commands/theme.js";
-import { WxpubApiError } from "./client.js";
+
+// 版本号单一真源 = package.json（发版只改那里，--version 永远同步）
+const { version } = createRequire(import.meta.url)("../package.json") as { version: string };
 
 const program = new Command();
 
 program
   .name("wxpub")
   .description("公众号发文 CLI — markdown 直投草稿箱（wechat-publish-service 客户端）")
-  .version("0.1.0")
+  .version(version)
   .option("--json", "输出 JSON（供 coding agent / 程序消费）", false);
 
 program
