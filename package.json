@@ -32,6 +32,14 @@
     "cli"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/helloworldtang/wxpub-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/helloworldtang/wxpub-cli/issues"
+  },
+  "homepage": "https://github.com/helloworldtang/wxpub-cli#readme",
   "dependencies": {
     "commander": "^14.0.0"
   },

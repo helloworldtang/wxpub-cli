@@ -1,7 +1,7 @@
 # 发版流水线：package.json 版本号变化 → 质量门 → npm 发版（OIDC trusted publishing）→ tag + GitHub Release
 #
 # 一次性配置：在 npmjs.com 的 wxpub 包设置页添加 Trusted Publisher：
-#   repository: helloworldtang/wxpub   workflow: release.yml   environment: 留空
+#   repository: helloworldtang/wxpub-cli   workflow: release.yml   environment: 留空
 # 之后无需任何 NPM_TOKEN 长期凭证。
 #
 # 发版方式：改 package.json 的 version → commit → push main。版本未变的提交只跑质量门，不发版。
