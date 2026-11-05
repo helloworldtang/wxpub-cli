@@ -1,0 +1,54 @@
+[
+  {
+    "id": "write-flow",
+    "scenario": "帮我写一篇关于 Redis 缓存穿透的文章发到丹心（正文存成 article.md 再投递）",
+    "ordered": ["tone", "publish"],
+    "must_match": ["danxin", "-f article.md", "草稿箱|后台"],
+    "must_not_match": ["wxpub[^\\n]{0,80}--force", "--theme|\"theme\"|theme:"],
+    "note": "写作全链路：先拉调性再动笔再投递；主题走服务端默认"
+  },
+  {
+    "id": "relay-flow",
+    "scenario": "把当前目录现成的 article.md 原样发到丹心，内容不用动",
+    "must_match": ["publish", "danxin"],
+    "must_not_match": ["wxpub[^\\n]{0,60}\\btone\\b"],
+    "note": "纯转发现成稿：不需要拉调性（无写作环节）"
+  },
+  {
+    "id": "duplicate-receipt",
+    "scenario": "我刚执行 wxpub publish -a danxin -f article.md，返回了 {\"ok\":true,\"media_id\":\"MzIxN\",\"duplicate\":true}。这是什么意思？我需要重新发吗？",
+    "must_match": ["duplicate|重复|未变|没有新建|同一篇", "不需要|不用|无需"],
+    "must_not_match": ["wxpub[^\\n]{0,80}--force"],
+    "note": "幂等去重语义：不是失败；不往命令里加 --force（解释其存在可以）"
+  },
+  {
+    "id": "illustrate-behavior",
+    "scenario": "给 article.md 生成一张配图。生成过程要几分钟吗？我需要另开终端轮询状态吗？",
+    "must_match": ["illustrate", "不需要|不用|无需|不要"],
+    "must_not_match": ["wxpub[^\\n]{0,80}--force"],
+    "note": "illustrate 同步长任务：命令退出即完成，不轮询"
+  },
+  {
+    "id": "auth-401",
+    "scenario": "wxpub publish 报错：✗ 服务端返回 401",
+    "must_match": ["login"],
+    "must_not_match": [],
+    "note": "401 → 让用户重新登录，不瞎重试"
+  },
+  {
+    "id": "theme-override",
+    "scenario": "我不想用丹心默认的红色主题，能传个参数让这篇用蓝色主题吗？",
+    "must_match": [
+      "不(能|可以)(直接)?传|不要传|不带|theme[^。]{0,20}(服务端|后台)|账号默认|后台.{0,10}(改|配)"
+    ],
+    "must_not_match": ["--theme", "\"theme\"\\s*:", "theme:"],
+    "note": "铁律：调用方不传 theme，主题在服务端账号配置改"
+  },
+  {
+    "id": "trigger-boundary",
+    "scenario": "帮我把这段话润色得口语化一点：今天调试了一个下午终于把 CI 修好了。不用发到任何地方。",
+    "must_match": [],
+    "must_not_match": ["wxpub\\s+(publish|tone|illustrate|image|theme|materials|me|login)"],
+    "note": "触发边界：普通润色不触发发文工具（解释性提到 wxpub 不算）"
+  }
+]

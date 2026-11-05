@@ -127,11 +127,16 @@ npm install
 npm run lint        # ESLint 9 (flat config)
 npm run typecheck   # tsc --noEmit
 npm test            # vitest（wire 契约测试）
+npm run eval        # agent evals（真 agent 回归 SKILL.md 行为，~$0.2/次）
 npm run build       # 产出 dist/
 node dist/index.js --help
 ```
 
+### agent evals
+
+`evals/` 用 `claude -p` 无头模式做 **skill 行为回归**：把 SKILL.md + 场景指令喂给干净 agent，对它的"将执行的命令 + 说明"按规则评分（ordered 顺序 / must_match / must_not_match）。改 SKILL.md 或 CLI 行为后跑 `npm run eval`，红灯 = 说明书没教好。首跑即抓到真问题：场景歧义（转发现成稿要不要拉调性）促成了铁律 1 的措辞收紧。
+
 ## 路线图
 
-- ✅ v0.3：`wxpub install` 分发 Agent Skill（遵循 [Agent Skills 开放规范](https://agentskills.io/specification)），Claude Code 自动发现发文工作流
+- ✅ v0.3：`wxpub install` 分发 Agent Skill（遵循 [Agent Skills 开放规范](https://agentskills.io/specification)），Claude Code 自动发现发文工作流；`npm run eval` agent evals 持续回归 skill 行为（vercel 式）
 - ✅ v0.2：`wxpub tone` 拉账号调性（写文前注入 agent 上下文）；`wxpub illustrate` AI 生成文中插图（依赖服务端 `/api/mp/account-tone` 与 `/api/mp/ai-image`）

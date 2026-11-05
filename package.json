@@ -1,6 +1,6 @@
 {
   "name": "wxpub-cli",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "WeChat Official Account publishing CLI — markdown 直投公众号草稿箱（wechat-publish-service 客户端，API-Key 通道）",
   "type": "module",
   "bin": {
@@ -24,7 +24,8 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build"
+    "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build",
+    "eval": "node evals/run.mjs"
   },
   "keywords": [
     "wechat",
