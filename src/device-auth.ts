@@ -176,6 +176,26 @@ export function credentialValidityHint(token: string, nowMs: number = Date.now()
   return `委托票有效期至 ${expireAt}（剩 ${remainMin} 分钟），过期后重跑 wxpub login 即可。`;
 }
 
+/** 凭据形态与剩余有效期（wxpub me 展示用）：JWT 解 exp（可负=已过期）；sk_ 长期有效。 */
+export interface CredentialStatus {
+  kind: "jwt" | "api_key" | "unknown";
+  /** 秒；null = 无时效概念（sk_ / 未知形态） */
+  remainSec: number | null;
+  /** 到点时刻 HH:MM:SS；null 同上 */
+  expireAt: string | null;
+}
+
+export function credentialStatus(token: string, nowMs: number = Date.now()): CredentialStatus {
+  if (token.startsWith("sk_")) return { kind: "api_key", remainSec: null, expireAt: null };
+  const exp = decodeJwtExp(token);
+  if (exp === null) return { kind: "unknown", remainSec: null, expireAt: null };
+  return {
+    kind: "jwt",
+    remainSec: exp - Math.floor(nowMs / 1000),
+    expireAt: new Date(exp * 1000).toLocaleTimeString("zh-CN", { hour12: false }),
+  };
+}
+
 /**
  * 校验 auth 签发的 API Key（POST /api/keys/validate）。
  * 有效返回 key 描述；无效/网络失败返回 null（调用方降级走设备流）。

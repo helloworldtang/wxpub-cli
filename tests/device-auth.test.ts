@@ -4,6 +4,7 @@ import {
   DEVICE_CLIENT_ID,
   DEVICE_GRANT_URN,
   DeviceFlowError,
+  credentialStatus,
   credentialValidityHint,
   decodeJwtExp,
   discoverDeviceEndpoints,
@@ -213,5 +214,28 @@ describe("credentialValidityHint（登录成功后的有效期提示）", () => 
     expect(credentialValidityHint("sk_live_abc")).toBe(
       "提示：token 有时效，过期后重跑 wxpub login 即可。",
     );
+  });
+});
+
+describe("credentialStatus（me 凭据形态与剩余有效期）", () => {
+  const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString("base64url");
+
+  it("JWT：解出剩余秒数与到点时刻；过期为负值", () => {
+    const nowMs = Date.UTC(2026, 10, 6, 3, 30, 0);
+    const fresh = credentialStatus(`h.${b64({ exp: Math.floor(nowMs / 1000) + 120 })}.s`, nowMs);
+    expect(fresh.kind).toBe("jwt");
+    expect(fresh.remainSec).toBe(120);
+    expect(fresh.expireAt).toMatch(/\d{2}:\d{2}:\d{2}/);
+
+    const expired = credentialStatus(`h.${b64({ exp: Math.floor(nowMs / 1000) - 1 })}.s`, nowMs);
+    expect(expired.remainSec).toBeLessThanOrEqual(0);
+  });
+
+  it("sk_ key：长期有效，无时效字段", () => {
+    expect(credentialStatus("sk_live_abc")).toEqual({
+      kind: "api_key",
+      remainSec: null,
+      expireAt: null,
+    });
   });
 });
