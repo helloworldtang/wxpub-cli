@@ -4,6 +4,7 @@ import {
   DEVICE_CLIENT_ID,
   DEVICE_GRANT_URN,
   DeviceFlowError,
+  credentialValidityHint,
   decodeJwtExp,
   discoverDeviceEndpoints,
   pollDeviceToken,
@@ -194,5 +195,23 @@ describe("pollDeviceToken（RFC 8628 §3.5 轮询语义）", () => {
     await expect(
       pollDeviceToken({ ...base, fetchImpl: impl2, sleepImpl: async () => {} }),
     ).rejects.toBeInstanceOf(DeviceFlowError);
+  });
+});
+
+describe("credentialValidityHint（登录成功后的有效期提示）", () => {
+  const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString("base64url");
+
+  it("JWT 带 exp：提示含到点时刻与剩余分钟数", () => {
+    const nowMs = Date.UTC(2026, 10, 6, 3, 30, 0); // 11:30:00 本地无关，注入固定值
+    const expSec = Math.floor(nowMs / 1000) + 14 * 60 + 59; // 剩 14 分 59 秒 → 14 分钟
+    const hint = credentialValidityHint(`h.${b64({ exp: expSec })}.s`, nowMs);
+    expect(hint).toMatch(/委托票有效期至 \d{2}:\d{2}:\d{2}（剩 14 分钟）/);
+    expect(hint).toContain("wxpub login");
+  });
+
+  it("非 JWT：退化为通用时效提示", () => {
+    expect(credentialValidityHint("sk_live_abc")).toBe(
+      "提示：token 有时效，过期后重跑 wxpub login 即可。",
+    );
   });
 });

@@ -5,6 +5,7 @@ import {
   DEFAULT_AUTH_ISSUER,
   DEVICE_CLIENT_ID,
   DeviceFlowError,
+  credentialValidityHint,
   decodeJwtExp,
   discoverDeviceEndpoints,
   pollDeviceToken,
@@ -124,7 +125,7 @@ async function runDeviceLogin(options: LoginOptions): Promise<void> {
     console.log(`已保存到 ${configPath()}`);
     console.log(`服务地址：${baseUrl}`);
     console.log("现在可以发文了：wxpub publish --account <账号> --file article.md");
-    console.log("提示：token 有时效，过期后重跑 wxpub login 即可。");
+    console.log(credentialValidityHint(accessToken));
   } catch (err) {
     if (err instanceof DeviceFlowError && err.code === "access_denied") {
       console.error("✗ 你在浏览器里拒绝了本次授权");

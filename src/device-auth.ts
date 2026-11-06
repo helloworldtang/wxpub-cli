@@ -164,6 +164,19 @@ export function assertJwtUsable(token: string, minRemainSec = 60): void {
 }
 
 /**
+ * 登录成功后的有效期提示语：JWT 可解 exp 时给「有效期至 HH:MM:SS（剩 N 分钟）」
+ * （15 分钟短命票，明确到点时间比抽象的"有时效"更能帮用户规划发文窗口），
+ * 非 JWT / 无 exp 退化为通用提示。nowMs 注入供测试。
+ */
+export function credentialValidityHint(token: string, nowMs: number = Date.now()): string {
+  const exp = decodeJwtExp(token);
+  if (exp === null) return "提示：token 有时效，过期后重跑 wxpub login 即可。";
+  const remainMin = Math.max(0, Math.floor((exp * 1000 - nowMs) / 60_000));
+  const expireAt = new Date(exp * 1000).toLocaleTimeString("zh-CN", { hour12: false });
+  return `委托票有效期至 ${expireAt}（剩 ${remainMin} 分钟），过期后重跑 wxpub login 即可。`;
+}
+
+/**
  * 校验 auth 签发的 API Key（POST /api/keys/validate）。
  * 有效返回 key 描述；无效/网络失败返回 null（调用方降级走设备流）。
  */
