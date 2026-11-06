@@ -204,3 +204,54 @@ describe("WxpubClient.generateIllustration（传输层契约）", () => {
     );
   });
 });
+
+describe("凭据前置预检（委托票过期/临期，authHeaders 收口）", () => {
+  /** 构造三段式 JWT（payload 只含 exp，预检只解这一个字段）。 */
+  function fakeJwt(expSecs: number): string {
+    const enc = (o: unknown) => Buffer.from(JSON.stringify(o)).toString("base64url");
+    return `${enc({ alg: "RS256" })}.${enc({ exp: expSecs })}.${enc({ sig: "x" })}`;
+  }
+  const nowSec = () => Math.floor(Date.now() / 1000);
+
+  function makeJwtClient(
+    apiKey: string,
+  ): { client: WxpubClient; captured: CapturedRequest[] } {
+    const captured: CapturedRequest[] = [];
+    const impl = async (url: string, init?: RequestInit): Promise<Response> => {
+      captured.push({ url, init });
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+    return { client: new WxpubClient({ baseUrl: "https://yyps.net", apiKey, fetchImpl: impl }), captured };
+  }
+
+  it("已过期 JWT：请求前拦截，零网络，错误带重登指引", async () => {
+    const { client, captured } = makeJwtClient(fakeJwt(nowSec() - 120));
+    await expect(client.accountTone("danxin")).rejects.toThrow(
+      /已过期.*wxpub login/,
+    );
+    expect(captured).toHaveLength(0);
+  });
+
+  it("临期 JWT（剩 ≤60s，与 login 的有效口径同界）：同样拦截", async () => {
+    const { client, captured } = makeJwtClient(fakeJwt(nowSec() + 30));
+    await expect(client.accountTone("danxin")).rejects.toThrow(/仅剩.*wxpub login/);
+    expect(captured).toHaveLength(0);
+  });
+
+  it("有效 JWT：不误拦，走 Bearer 通道正常请求", async () => {
+    const { client, captured } = makeJwtClient(fakeJwt(nowSec() + 600));
+    await client.accountTone("danxin");
+    expect(captured).toHaveLength(1);
+    const headers = captured[0]?.init?.headers as Record<string, string>;
+    expect(headers.Authorization).toMatch(/^Bearer .+\..+\..+$/);
+  });
+
+  it("health() 无凭据路径不被预检拦截（me 命令仍可查服务健康）", async () => {
+    const { client, captured } = makeJwtClient(fakeJwt(nowSec() - 120));
+    await expect(client.health()).resolves.toBe(true);
+    expect(captured).toHaveLength(1); // /health 请求已发出
+  });
+});

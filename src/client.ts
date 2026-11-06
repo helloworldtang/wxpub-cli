@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { WxpubConfig } from "./config.js";
+import { assertJwtUsable } from "./device-auth.js";
 
 /** publish 请求的用户输入（不含协议自动字段）。 */
 export interface PublishInput {
@@ -170,9 +171,14 @@ export class WxpubClient {
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
-  /** sk_ 开头是 API Key（X-API-Key）；三段点分是 JWT（Bearer 委托票）。 */
+  /**
+   * sk_ 开头是 API Key（X-API-Key）；三段点分是 JWT（Bearer 委托票）。
+   * JWT 先过前置预检（过期/临期直接抛带指引的错误）：委托票仅 15 分钟命，
+   * 与其等服务端 401 裸错误，不如发请求前就告知重登。health() 等无凭据路径不经此。
+   */
   private authHeaders(): Record<string, string> {
     const isJwt = !this.apiKey.startsWith("sk_") && this.apiKey.split(".").length === 3;
+    if (isJwt) assertJwtUsable(this.apiKey);
     return isJwt ? { Authorization: `Bearer ${this.apiKey}` } : { "X-API-Key": this.apiKey };
   }
 

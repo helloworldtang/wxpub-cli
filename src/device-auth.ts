@@ -147,6 +147,23 @@ function atobUrl(s: string): string {
 }
 
 /**
+ * CLI 侧凭据前置预检：JWT（设备流委托票）已过期或临期（≤minRemainSec）时抛出带指引的
+ * 错误，让命令在发起请求前就明确告知重登，而不是等服务端 401 才报裸错误。
+ * sk_ Key 与无 exp 的 JWT 不拦（长期有效/未知形态，交给服务端判定）。
+ * 与 login 命令的「剩 >60s 视为够用」同一口径，避免边界抖动。
+ */
+export function assertJwtUsable(token: string, minRemainSec = 60): void {
+  const exp = decodeJwtExp(token);
+  if (exp === null) return;
+  const remainSec = exp - Math.floor(Date.now() / 1000);
+  if (remainSec <= minRemainSec) {
+    throw new Error(
+      `登录凭据（委托票）${remainSec <= 0 ? "已过期" : `仅剩 ${remainSec} 秒`}，请重跑：wxpub login`,
+    );
+  }
+}
+
+/**
  * 校验 auth 签发的 API Key（POST /api/keys/validate）。
  * 有效返回 key 描述；无效/网络失败返回 null（调用方降级走设备流）。
  */

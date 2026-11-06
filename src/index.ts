@@ -123,6 +123,11 @@ program
 program.parseAsync().catch((err: unknown) => {
   if (err instanceof WxpubApiError) {
     console.error(`✗ ${err.message}`);
+    // 401 收口：委托票 15 分钟短命 + sk_ key 失效都会走到这，裸 HTTP 错误不指路——
+    // 补一行重登指引（预检拦不住的：票在命令执行中途过期、key 服务端已吊销）
+    if (err.status === 401) {
+      console.error("  凭据被服务端拒绝：委托票已过期或 key 无效。请重跑：wxpub login");
+    }
   } else if (err instanceof Error) {
     console.error(`✗ ${err.message}`);
   } else {

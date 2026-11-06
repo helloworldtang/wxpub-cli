@@ -1,7 +1,7 @@
 {
   "name": "wxpub-cli",
-  "version": "0.4.0",
-  "description": "WeChat Official Account publishing CLI \u2014 markdown \u76f4\u6295\u516c\u4f17\u53f7\u8349\u7a3f\u7bb1\uff08wechat-publish-service \u5ba2\u6237\u7aef\uff0cAPI-Key \u901a\u9053\uff09",
+  "version": "0.4.1",
+  "description": "WeChat Official Account publishing CLI — markdown 直投公众号草稿箱（wechat-publish-service 客户端，API-Key 通道）",
   "type": "module",
   "bin": {
     "wxpub": "dist/index.js",
