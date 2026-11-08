@@ -26,7 +26,8 @@ description: "公众号发文 CLI（wechat-publish-service 客户端）。当用
 1. `wxpub --json tone -a <账号>` —— 取 persona（主笔人设）+ style_rules（结构规则）+ 字数区间，**注入写作上下文后再动笔**；`tone:null` 表示该号未绑定，按用户口述要求写
 2. 按调性写 markdown，存成文件（标题写进首个 `# 一级标题`，publish 会自动取）
 3. 需要插图时 `wxpub --json illustrate -a <账号> -f 文章.md`，把返回的 `markdown` 字段（`![配图](mmbiz url)`）插到正文合适位置
-4. `wxpub --json publish -a <账号> -f 文章.md` 投递，取 `media_id` 复命，并提醒用户：**已入草稿箱，群发请到公众号后台人工确认**
+4. **投递前过一遍去 AI 腔门禁**：本机装有 `article-deslop` skill 时先跑它（确定性四规则+审稿四问，只提醒不阻断）；没装跳过，不阻塞投递
+5. `wxpub --json publish -a <账号> -f 文章.md` 投递，取 `media_id` 复命，并提醒用户：**已入草稿箱，群发请到公众号后台人工确认**
 
 ## ⚠️ 铁律（必守）
 
