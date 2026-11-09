@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import path from "node:path";
+import path, { dirname } from "node:path";
 
 /** CLI 凭据配置：yyps 服务地址 + API Key。 */
 export interface WxpubConfig {
@@ -28,20 +28,20 @@ export function normalizeBaseUrl(raw: string): string {
   return /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
-/** 持久化配置到 ~/.wxpub/config.json（0600 权限，含密钥）。 */
-export function saveConfig(config: WxpubConfig): void {
-  mkdirSync(CONFIG_DIR, { recursive: true });
-  writeFileSync(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`, { mode: 0o600 });
+/** 持久化配置到 ~/.wxpub/config.json（0600 权限，含密钥）。path 供测试注入。 */
+export function saveConfig(config: WxpubConfig, path: string = CONFIG_PATH): void {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`, { mode: 0o600 });
 }
 
-/** 读取已保存的配置；未配置返回 null。 */
-export function loadConfig(): WxpubConfig | null {
-  if (!existsSync(CONFIG_PATH)) {
+/** 读取已保存的配置；未配置返回 null（logout 后 apiKey 置空串，同样视为未配置）。path 供测试注入。 */
+export function loadConfig(path: string = CONFIG_PATH): WxpubConfig | null {
+  if (!existsSync(path)) {
     return null;
   }
   try {
-    const raw = JSON.parse(readFileSync(CONFIG_PATH, "utf8")) as Partial<WxpubConfig>;
-    if (typeof raw.baseUrl !== "string" || typeof raw.apiKey !== "string") {
+    const raw = JSON.parse(readFileSync(path, "utf8")) as Partial<WxpubConfig>;
+    if (typeof raw.baseUrl !== "string" || typeof raw.apiKey !== "string" || raw.apiKey === "") {
       return null;
     }
     return { baseUrl: raw.baseUrl, apiKey: raw.apiKey };

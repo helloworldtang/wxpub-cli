@@ -33,6 +33,10 @@ wxpub publish --account danxin --file article.md
 
 # 3. 检查登录态与服务健康
 wxpub me
+
+# 凭据生命周期：换凭据 / 登出（login → me → update → logout 闭环）
+wxpub update --api-key sk_live_new   # 替换凭据（校验通过才落盘；缺省交互粘贴）
+wxpub logout                         # 清除本地凭据（保留服务地址）
 ```
 
 设备流走 auth（AuthKeystone）标准协议：RFC 8414 发现 → RFC 8628 设备授权 → 批准后签 RFC 8693 委托票（`aud=client_wechat`，服务端按委托票验票）。全程零密钥经手、端点零硬编码。原理、时效与各场景 UX（首次/过期重登/未登录浏览器/无人值守等）详见 [设备流登录场景全记录](docs/device-login.md)。

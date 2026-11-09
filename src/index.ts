@@ -9,11 +9,13 @@ import { runImage } from "./commands/image.js";
 import { runIllustrate } from "./commands/illustrate.js";
 import { runInstall } from "./commands/install.js";
 import { runLogin } from "./commands/login.js";
+import { runLogout } from "./commands/logout.js";
 import { runMaterials } from "./commands/materials.js";
 import { runMe } from "./commands/me.js";
 import { runPublish } from "./commands/publish.js";
 import { runTheme } from "./commands/theme.js";
 import { runTone } from "./commands/tone.js";
+import { runUpdate } from "./commands/update.js";
 
 // 版本号单一真源 = package.json（发版只改那里，--version 永远同步）
 const { version } = createRequire(import.meta.url)("../package.json") as { version: string };
@@ -35,6 +37,21 @@ program
   .option("--force", "跳过「凭据仍有效」检查，无条件重新走设备流（换账号用）", false)
   .action(async (options) => {
     await runLogin(options);
+  });
+
+program
+  .command("update")
+  .description("替换凭据（新 key 从管理端复制；要重新走设备流用 login --force）")
+  .option("--api-key <key>", "新凭据：API Key（sk_…）或 JWT（不填则交互粘贴）")
+  .action(async (options) => {
+    await runUpdate(options);
+  });
+
+program
+  .command("logout")
+  .description("清除本地凭据（保留服务地址；重新登录用 wxpub login）")
+  .action(() => {
+    runLogout();
   });
 
 program
