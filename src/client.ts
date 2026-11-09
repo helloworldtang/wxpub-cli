@@ -185,6 +185,12 @@ export class WxpubClient {
     return isJwt ? { Authorization: `Bearer ${this.apiKey}` } : { "X-API-Key": this.apiKey };
   }
 
+  /** 所有出站请求统一 UA：显式替代 undici 默认的 "node"，服务端日志按此
+   * 分桶 CLI 流量，版本随发版自动携带——老版本机器继续发 "node"，天然分桶过渡。 */
+  private uaHeaders(): Record<string, string> {
+    return { "User-Agent": `wxpub-cli/${version}` };
+  }
+
   private async request(path: string, init: RequestInit): Promise<unknown> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
@@ -192,9 +198,7 @@ export class WxpubClient {
     try {
       resp = await this.fetchImpl(`${this.baseUrl}${path}`, {
         ...init,
-        // 显式 UA 替代 undici 默认的 "node"：服务端日志按此分桶 CLI 流量，
-        // 版本随发版自动携带——老版本机器继续发 "node"，天然分桶过渡。
-        headers: { "User-Agent": `wxpub-cli/${version}`, ...(init.headers as Record<string, string>) },
+        headers: { ...this.uaHeaders(), ...(init.headers as Record<string, string>) },
         signal: controller.signal,
       });
     } catch (err) {
@@ -228,7 +232,7 @@ export class WxpubClient {
     const timer = setTimeout(() => controller.abort(), 10_000);
     try {
       const resp = await this.fetchImpl(`${this.baseUrl}/health`, {
-        headers: { "User-Agent": `wxpub-cli/${version}` },
+        headers: this.uaHeaders(),
         signal: controller.signal,
       });
       return resp.ok;
