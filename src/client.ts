@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
+import { createRequire } from "node:module";
 
 import type { WxpubConfig } from "./config.js";
 import { assertJwtUsable } from "./device-auth.js";
+
+const { version } = createRequire(import.meta.url)("../package.json") as { version: string };
 
 /** publish 请求的用户输入（不含协议自动字段）。 */
 export interface PublishInput {
@@ -189,6 +192,9 @@ export class WxpubClient {
     try {
       resp = await this.fetchImpl(`${this.baseUrl}${path}`, {
         ...init,
+        // 显式 UA 替代 undici 默认的 "node"：服务端日志按此分桶 CLI 流量，
+        // 版本随发版自动携带——老版本机器继续发 "node"，天然分桶过渡。
+        headers: { "User-Agent": `wxpub-cli/${version}`, ...(init.headers as Record<string, string>) },
         signal: controller.signal,
       });
     } catch (err) {
@@ -221,7 +227,10 @@ export class WxpubClient {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 10_000);
     try {
-      const resp = await this.fetchImpl(`${this.baseUrl}/health`, { signal: controller.signal });
+      const resp = await this.fetchImpl(`${this.baseUrl}/health`, {
+        headers: { "User-Agent": `wxpub-cli/${version}` },
+        signal: controller.signal,
+      });
       return resp.ok;
     } catch {
       return false;

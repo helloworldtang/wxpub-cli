@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { createRequire } from "node:module";
 
 import { WxpubApiError, WxpubClient } from "../src/client.js";
+
+const { version } = createRequire(import.meta.url)("../package.json") as { version: string };
 
 interface CapturedRequest {
   url: string;
@@ -44,6 +47,7 @@ describe("WxpubClient.publish（传输层契约）", () => {
     expect(req?.init?.method).toBe("POST");
     const headers = req?.init?.headers as Record<string, string>;
     expect(headers["X-API-Key"]).toBe("sk_live_test");
+    expect(headers["User-Agent"]).toBe(`wxpub-cli/${version}`);
     const body = JSON.parse(String(req?.init?.body)) as Record<string, unknown>;
     expect(body.content_format).toBe("markdown");
     expect(body.account).toBe("danxin");
