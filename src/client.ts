@@ -160,7 +160,7 @@ const DEFAULT_TIMEOUT_MS = 60_000;
 /** wechat-publish-service 客户端（API-Key 通道）。 */
 export class WxpubClient {
   private readonly baseUrl: string;
-  private readonly apiKey: string;
+  protected readonly apiKey: string;
   private readonly fetchImpl: FetchLike;
   private readonly timeoutMs: number;
 
@@ -179,7 +179,7 @@ export class WxpubClient {
    * JWT 先过前置预检（过期/临期直接抛带指引的错误）：委托票仅 15 分钟命，
    * 与其等服务端 401 裸错误，不如发请求前就告知重登。health() 等无凭据路径不经此。
    */
-  private authHeaders(): Record<string, string> {
+  protected authHeaders(): Record<string, string> {
     const isJwt = !this.apiKey.startsWith("sk_") && this.apiKey.split(".").length === 3;
     if (isJwt) assertJwtUsable(this.apiKey);
     return isJwt ? { Authorization: `Bearer ${this.apiKey}` } : { "X-API-Key": this.apiKey };
@@ -191,9 +191,11 @@ export class WxpubClient {
     return { "User-Agent": `wxpub-cli/${version}` };
   }
 
-  private async request(path: string, init: RequestInit): Promise<unknown> {
+  /** timeoutMs 可按调用点覆盖（LLM 长任务用更长超时），默认走实例超时。 */
+  protected async request(path: string, init: RequestInit, timeoutMs?: number): Promise<unknown> {
+    const effectiveTimeout = timeoutMs ?? this.timeoutMs;
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    const timer = setTimeout(() => controller.abort(), effectiveTimeout);
     let resp: Response;
     try {
       resp = await this.fetchImpl(`${this.baseUrl}${path}`, {
@@ -203,7 +205,7 @@ export class WxpubClient {
       });
     } catch (err) {
       const reason = controller.signal.aborted
-        ? `超时（${this.timeoutMs}ms）`
+        ? `超时（${effectiveTimeout}ms）`
         : (err as Error).message;
       throw new WxpubApiError(`请求 ${path} 失败：${reason}`, 0, null);
     } finally {

@@ -110,6 +110,37 @@ wxpub image -a danxin -f chart.png
 # 输出 media_id + mmbiz URL，直接以 ![](url) 内嵌 Markdown 正文
 ```
 
+## 管理台命令（用户级全套）
+
+网页管理台上的用户级操作在 CLI 同样可做。这组命令走 JWT 委托票通道（`wxpub login` 所得）——**API Key（sk\_）不支持**，调用会前置报错并指路 `wxpub login`。
+
+| 命令                                                                 | 作用                                                      |
+| -------------------------------------------------------------------- | --------------------------------------------------------- |
+| `wxpub accounts`                                                     | 列出自己归属的公众号账号（account_key / account_id 发现） |
+| `wxpub quota`                                                        | 我的今日配额余量                                          |
+| `wxpub tones`                                                        | 调性列表（给 draft/outline 绑 tone_preset_id）            |
+| `wxpub summarize -f <md> [-t title] [-a account] [--max-length 120]` | AI 生成文章摘要（digest 候选）                            |
+| `wxpub preview -f <md> --theme <key> [-o out.html]`                  | 按主题渲染公众号样式 HTML                                 |
+| `wxpub draft list/new/get/save/rm`                                   | 写作台草稿 CRUD                                           |
+| `wxpub draft outline/expand/lint/review/titles`                      | AI 写作五件套（大纲/单节扩写/规则门禁/审稿四问/标题候选） |
+| `wxpub history list/get/stats/rm`                                    | 发布历史                                                  |
+| `wxpub history cover <id> --regen [--preset id]` / `--manual`        | 重新生成 AI 封面（异步 job）/ 标记已手工更新              |
+
+**凭据矩阵**：`publish/tone/theme/illustrate/materials/image` = sk_ Key 或 JWT 皆可；`accounts/quota/tones/summarize/preview/draft */history *` = 仅 JWT（设备流登录，票约 15 分钟，过期重跑 `wxpub login`）。
+
+AI 写作全链（对应网页写作台）：
+
+```bash
+wxpub tones                                   # 查调性 id
+wxpub draft new -t "标题" -a <账号id> --tone <调性id>
+wxpub draft outline <id> --idea "写给谁、解决什么问题"
+wxpub draft expand <id> --section s1          # 逐节扩写（可 --reroll / --key-point 覆盖要点）
+wxpub draft lint <id>                         # 免费规则门禁；wxpub draft review <id> = LLM 审稿四问
+wxpub draft titles <id>                       # 标题候选（按分降序）
+wxpub draft save <id> -t "选定标题" --status ready
+wxpub publish -a danxin -f article.md         # 投递草稿箱（发布历史里可查/补封面）
+```
+
 ## 给 coding agent 用
 
 全局 `--json` 开关输出机器可读结果：
@@ -122,7 +153,7 @@ wxpub --json theme -a danxin
 # {"account":"danxin","theme_key":"green","theme_name":"品牌绿"}
 ```
 
-agent 典型工作流：`tone` 拉调性 → 按调性写 markdown → `illustrate` 生成插图 → `publish` 投递 → 从 JSON 里取 `media_id` 复命。
+agent 典型工作流：`tone` 拉调性 → 按调性写 markdown → `illustrate` 生成插图 → `publish` 投递 → 从 JSON 里取 `media_id` 复命。要上写作台全链（大纲→扩写→门禁→标题）见上文「AI 写作全链」。
 
 ## 开发
 

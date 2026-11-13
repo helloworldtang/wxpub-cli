@@ -217,9 +217,7 @@ describe("凭据前置预检（委托票过期/临期，authHeaders 收口）", 
   }
   const nowSec = () => Math.floor(Date.now() / 1000);
 
-  function makeJwtClient(
-    apiKey: string,
-  ): { client: WxpubClient; captured: CapturedRequest[] } {
+  function makeJwtClient(apiKey: string): { client: WxpubClient; captured: CapturedRequest[] } {
     const captured: CapturedRequest[] = [];
     const impl = async (url: string, init?: RequestInit): Promise<Response> => {
       captured.push({ url, init });
@@ -228,14 +226,15 @@ describe("凭据前置预检（委托票过期/临期，authHeaders 收口）", 
         headers: { "Content-Type": "application/json" },
       });
     };
-    return { client: new WxpubClient({ baseUrl: "https://yyps.net", apiKey, fetchImpl: impl }), captured };
+    return {
+      client: new WxpubClient({ baseUrl: "https://yyps.net", apiKey, fetchImpl: impl }),
+      captured,
+    };
   }
 
   it("已过期 JWT：请求前拦截，零网络，错误带重登指引", async () => {
     const { client, captured } = makeJwtClient(fakeJwt(nowSec() - 120));
-    await expect(client.accountTone("danxin")).rejects.toThrow(
-      /已过期.*wxpub login/,
-    );
+    await expect(client.accountTone("danxin")).rejects.toThrow(/已过期.*wxpub login/);
     expect(captured).toHaveLength(0);
   });
 

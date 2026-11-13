@@ -11,13 +11,18 @@ description: "公众号发文 CLI（wechat-publish-service 客户端）。当用
 
 ## 快速决策（要做什么 → 跑哪条）
 
-| 场景                       | 命令                                                  |
-| -------------------------- | ----------------------------------------------------- |
-| 给公众号写文章（先拉调性） | `wxpub --json tone -a <账号>`                         |
-| 投递文章到草稿箱           | `wxpub --json publish -a <账号> -f <md文件>`          |
-| 给文章生成配图             | `wxpub --json illustrate -a <账号> -f <md文件>`       |
-| 上传本地图片做插图         | `wxpub --json image -a <账号> -f <图片>`              |
-| 查账号默认主题 / 素材      | `wxpub theme -a <账号>` / `wxpub materials -a <账号>` |
+| 场景                              | 命令                                                        |
+| --------------------------------- | ----------------------------------------------------------- |
+| 给公众号写文章（先拉调性）        | `wxpub --json tone -a <账号>`                               |
+| 投递文章到草稿箱                  | `wxpub --json publish -a <账号> -f <md文件>`                |
+| 给文章生成配图                    | `wxpub --json illustrate -a <账号> -f <md文件>`             |
+| 上传本地图片做插图                | `wxpub --json image -a <账号> -f <图片>`                    |
+| 查账号默认主题 / 素材             | `wxpub theme -a <账号>` / `wxpub materials -a <账号>`       |
+| 查我的账号 / 配额                 | `wxpub --json accounts` / `wxpub --json quota`              |
+| 写作台全链（大纲→扩写→门禁→标题） | `wxpub draft new → outline → expand → lint → titles → save` |
+| 查发布历史 / 统计                 | `wxpub --json history list` / `wxpub history stats`         |
+| 补 AI 封面 / 标记手工封面         | `wxpub history cover <id> --regen` / `--manual`             |
+| AI 生成摘要（digest 候选）        | `wxpub --json summarize -f <md文件>`                        |
 
 账号 key：`danxin`（码骨丹心，后端技术）/ `mingdeng`（明灯，生活指南）/ `ailang`（AI浪，科技解读）。
 
@@ -37,7 +42,9 @@ description: "公众号发文 CLI（wechat-publish-service 客户端）。当用
 4. **重复投递返回 `duplicate:true` 不是失败**——内容没变被幂等去重，草稿箱还是原来那篇。要强制新建草稿才加 `--force`（须用户明确要求）。
 5. **成功判据看 `media_id`**：`{"ok":true,"media_id":"..."}` 才算投递成功；`ok:false` 或报错时把错误信息原样呈现给用户，不要自行猜测重试。
 6. **只落草稿箱，绝不群发**——发完必须告知用户"请到公众号后台确认群发"，不能宣称"已发布"。
-7. 写长文（>2000 字）时给 digest（分享摘要，≤54 字）；笔名用 `--author` 仅在用户明确指定时传。
+7. 写长文（>2000 字）时给 digest（分享摘要，≤54 字）；笔名用 `--author` 仅在用户明确指定时传。拿不准摘要时 `wxpub summarize -f 文章.md` 生成候选，但 digest 定稿权在用户。
+8. **admin 系命令（accounts/quota/tones/summarize/preview/draft/history）必须先 `wxpub login`**——API Key 通道不支持，会报错指路重登；委托票约 15 分钟过期，中途 401 就让用户重跑 `wxpub login`。
+9. **写作台全链是可选工作流**：用户只说"发这篇"走旧三步（tone→写→publish）即可；明确要走大纲/扩写/门禁/标题候选时才用 `draft` 子命令组（`wxpub draft --help` 看全量）。`draft rm` / `history rm` 无确认，删除前先向用户复述对象。
 
 ## 回执判读（--json 输出）
 

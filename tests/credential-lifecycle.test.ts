@@ -7,7 +7,10 @@ import { loadConfig, saveConfig } from "../src/config.js";
 import { checkCredential } from "../src/commands/update.js";
 
 function jsonResponse(status: number, body: unknown) {
-  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 const tmpFile = () => path.join(mkdtempSync(path.join(tmpdir(), "wxpub-cfg-")), "config.json");
@@ -32,7 +35,10 @@ describe("config: logout 后的空凭据语义", () => {
 describe("update: 替换前门禁 checkCredential", () => {
   it("sk_ key 服务端校验通过 → 放行", async () => {
     const impl = (async () =>
-      jsonResponse(200, { success: true, data: { service_name: "wechat-publish", is_active: true } })) as typeof fetch;
+      jsonResponse(200, {
+        success: true,
+        data: { service_name: "wechat-publish", is_active: true },
+      })) as typeof fetch;
     expect(await checkCredential("sk_live_ok", impl)).toEqual({ ok: true });
   });
 

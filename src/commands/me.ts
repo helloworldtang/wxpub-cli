@@ -12,7 +12,9 @@ function credentialLine(status: ReturnType<typeof credentialStatus>): string {
   if (status.kind !== "jwt" || status.remainSec === null) return "凭据状态：未知形态";
   if (status.remainSec <= 0) return "凭据状态：委托票已过期，请重跑 wxpub login";
   const remain =
-    status.remainSec >= 60 ? `剩 ${Math.floor(status.remainSec / 60)} 分钟` : `剩 ${status.remainSec} 秒`;
+    status.remainSec >= 60
+      ? `剩 ${Math.floor(status.remainSec / 60)} 分钟`
+      : `剩 ${status.remainSec} 秒`;
   return `凭据状态：委托票，${remain}（至 ${status.expireAt}）`;
 }
 

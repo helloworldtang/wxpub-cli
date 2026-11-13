@@ -5,6 +5,9 @@ import { createRequire } from "node:module";
 import { Command } from "commander";
 
 import { WxpubApiError } from "./client.js";
+import { runAccounts } from "./commands/accounts.js";
+import { registerDraftCommand } from "./commands/draft.js";
+import { registerHistoryCommand } from "./commands/history.js";
 import { runImage } from "./commands/image.js";
 import { runIllustrate } from "./commands/illustrate.js";
 import { runInstall } from "./commands/install.js";
@@ -13,7 +16,11 @@ import { runLogout } from "./commands/logout.js";
 import { runMaterials } from "./commands/materials.js";
 import { runMe } from "./commands/me.js";
 import { runPublish } from "./commands/publish.js";
+import { runPreview } from "./commands/preview.js";
+import { runQuota } from "./commands/quota.js";
+import { runSummarize } from "./commands/summarize.js";
 import { runTheme } from "./commands/theme.js";
+import { runTones } from "./commands/tones.js";
 import { runTone } from "./commands/tone.js";
 import { runUpdate } from "./commands/update.js";
 
@@ -136,6 +143,55 @@ program
   .action(async (options) => {
     await runImage({ ...options, json: program.opts().json });
   });
+
+// ==========================================
+// 管理台用户级命令组（JWT 委托票通道，sk_ Key 会前置报错指路 wxpub login）
+// ==========================================
+
+program
+  .command("accounts")
+  .description("列出自己归属的公众号账号（account_key / account_id 发现）")
+  .action(async () => {
+    await runAccounts({ json: program.opts().json });
+  });
+
+program
+  .command("quota")
+  .description("我的今日配额余量")
+  .action(async () => {
+    await runQuota({ json: program.opts().json });
+  });
+
+program
+  .command("tones")
+  .description("调性列表（system + 自己 user 级；给 draft/outline 绑 tone_preset_id）")
+  .action(async () => {
+    await runTones({ json: program.opts().json });
+  });
+
+program
+  .command("summarize")
+  .description("AI 生成文章摘要（digest 候选）")
+  .requiredOption("-f, --file <path>", "markdown 文件路径")
+  .option("-t, --title <title>", "标题；缺省取正文首个 # 一级标题")
+  .option("-a, --account <key>", "公众号账号 key（用该号 BYOK key 生成）")
+  .option("--max-length <n>", "摘要最大字数（默认 120）", (value) => Number.parseInt(value, 10))
+  .action(async (options) => {
+    await runSummarize({ ...options, json: program.opts().json });
+  });
+
+program
+  .command("preview")
+  .description("按主题 key 渲染公众号样式 HTML")
+  .requiredOption("-f, --file <path>", "markdown 文件路径")
+  .requiredOption("--theme <key>", "主题 key（如 danxin-red）")
+  .option("-o, --out <path>", "写出 HTML 文件（缺省打印到 stdout）")
+  .action(async (options) => {
+    await runPreview({ ...options, json: program.opts().json });
+  });
+
+program.addCommand(registerDraftCommand(program));
+program.addCommand(registerHistoryCommand(program));
 
 program.parseAsync().catch((err: unknown) => {
   if (err instanceof WxpubApiError) {
