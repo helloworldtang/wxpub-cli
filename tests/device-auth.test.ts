@@ -85,7 +85,7 @@ describe("discoverDeviceEndpoints（RFC 8414 发现契约）", () => {
 });
 
 describe("requestDeviceAuthorization（wire 契约）", () => {
-  it("发起请求带 client_id + scope；响应字段完整映射", async () => {
+  it("发起请求带 client_id + audience、不带 scope；响应字段完整映射", async () => {
     let captured: { url: string; body: URLSearchParams } | undefined;
     const impl = async (url: string, init?: RequestInit) => {
       captured = { url, body: new URLSearchParams(String(init?.body)) };
@@ -108,7 +108,8 @@ describe("requestDeviceAuthorization（wire 契约）", () => {
     expect(auth.verificationUriComplete).toContain("user_code=WDJB-MJHT");
     expect(captured?.url).toBe("https://auth.example.com/oauth/device/authorize");
     expect(captured?.body.get("client_id")).toBe(DEVICE_CLIENT_ID);
-    expect(captured?.body.get("scope")).toBe("openid profile auth:permissions");
+    // 不发 scope（真机实证：发 OIDC 形态 scope 会让委托票 permissions 恒空 → 下游 403）
+    expect(captured?.body.get("scope")).toBeNull();
     expect(captured?.body.get("audience")).toBe("client_wechat");
   });
 

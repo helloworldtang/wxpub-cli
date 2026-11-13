@@ -12,8 +12,13 @@ export const DEFAULT_AUTH_ISSUER = "https://auth.ai-as.cc";
 export const DEVICE_GRANT_URN = "urn:ietf:params:oauth:grant-type:device_code";
 /** 设备流专用公开 client（auth 侧注册：public + device_code grant）。 */
 export const DEVICE_CLIENT_ID = "wxpub-cli";
-/** 请求的 scope：auth:permissions 让 token 带权限标识（服务端 introspect 实时回填）。 */
-export const DEVICE_SCOPE = "openid profile auth:permissions";
+/**
+ * 设备授权**不发 scope**：auth 侧委托签发把 requested_scope 当权限码过滤器
+ * （permissions ∩ scope，按字符串精确匹配）——发 OIDC 形态的 scope（如
+ * auth:permissions）交集恒空，票里 permissions=[]，下游权限门全 403（2026-11-13
+ * 真机实测）。不发 scope = 沿用用户权限全量快照（auth delegation_claims 注释
+ * 明示的语义），admin 用户的票自动带 admin:manage。
+ */
 /**
  * RFC 8693 audience：wechat-publish 只收 aud=自己 client_id 的 delegation 委托票，
  * 设备流带 audience 发起 → 批准后直接签出委托票（无需机密 client 的 token exchange）。
@@ -97,7 +102,6 @@ export async function requestDeviceAuthorization(
 ): Promise<DeviceAuthorization> {
   const body = new URLSearchParams({
     client_id: clientId,
-    scope: DEVICE_SCOPE,
     audience,
   });
   const resp = await fetchImpl(endpoint, {

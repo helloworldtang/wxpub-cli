@@ -148,6 +148,7 @@ export interface HistoryStats {
   total_publishes: number;
   success_count: number;
   failed_count: number;
+  /** 百分数形态（真机实测 414/418 → 99.0，非 0-1 小数） */
   success_rate: number;
   today_count: number;
   week_count: number;

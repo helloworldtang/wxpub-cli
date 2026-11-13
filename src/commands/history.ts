@@ -87,7 +87,7 @@ export function registerHistoryCommand(program: Command): Command {
         return;
       }
       console.log(
-        `共 ${stats.total_publishes} 篇（成功 ${stats.success_count} / 失败 ${stats.failed_count}，成功率 ${(stats.success_rate * 100).toFixed(0)}%）`,
+        `共 ${stats.total_publishes} 篇（成功 ${stats.success_count} / 失败 ${stats.failed_count}，成功率 ${stats.success_rate.toFixed(1)}%）`,
       );
       console.log(
         `  今日 ${stats.today_count}  本周 ${stats.week_count}  本月 ${stats.month_count}`,
