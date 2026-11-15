@@ -389,7 +389,10 @@ export class WxpubClient {
   ): Promise<UploadResult> {
     const form = new FormData();
     form.append("account", account);
+    // 契约：nonce 与 expires_at 成对（epoch 秒，惯例 now+300；缺 expires_at 报
+    // 「缺少或无效 expires_at」——2026-11-15 实锤修复）
     form.append("nonce", randomUUID().replaceAll("-", ""));
+    form.append("expires_at", String(Math.floor(Date.now() / 1000) + 300));
     form.append("file", new Blob([fileBytes]), fileName);
     const body = (await this.request("/api/mp/materials/upload", {
       method: "POST",

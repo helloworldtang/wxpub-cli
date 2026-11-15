@@ -123,7 +123,7 @@ describe("WxpubClient.accountTheme / listMaterials（传输层契约）", () => 
 });
 
 describe("WxpubClient.uploadImage（multipart 契约）", () => {
-  it("multipart 字段：account 与 nonce 必填 + file 带文件名", async () => {
+  it("multipart 字段：account/nonce/expires_at 成对 + file 带文件名", async () => {
     const { captured, impl } = captureFetch(200, {
       success: true,
       media_id: "M1",
@@ -141,6 +141,13 @@ describe("WxpubClient.uploadImage（multipart 契约）", () => {
     expect(form).toBeInstanceOf(FormData);
     expect(form.get("account")).toBe("danxin");
     expect(typeof form.get("nonce")).toBe("string");
+    // expires_at 与 nonce 成对（epoch 秒 now+300；缺失=服务端 400「缺少或无效 expires_at」）
+    const exp = form.get("expires_at");
+    expect(typeof exp).toBe("string");
+    const expNum = Number(exp);
+    expect(Number.isFinite(expNum)).toBe(true);
+    expect(expNum).toBeGreaterThan(Math.floor(Date.now() / 1000) + 200);
+    expect(expNum).toBeLessThan(Math.floor(Date.now() / 1000) + 400);
     const file = form.get("file");
     expect(file).toBeInstanceOf(File);
     expect((file as File).name).toBe("cover.png");
