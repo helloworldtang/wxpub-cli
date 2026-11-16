@@ -80,8 +80,8 @@ program
   .description("投递 markdown 文章到公众号草稿箱")
   .requiredOption("-a, --account <key>", "公众号账号 key（如 danxin）")
   .requiredOption("-f, --file <path>", "markdown 文件路径")
-  .option("-t, --title <title>", "标题；缺省取正文首个 # 一级标题")
-  .option("--digest <text>", "分享摘要（≤54 字）")
+  .option("-t, --title <title>", "标题；缺省取 front-matter `title:` > 正文首个 # 一级标题")
+  .option("--digest <text>", "分享摘要（≤120 字）；缺省取文件头 front-matter `digest:`")
   .option("--author <name>", "笔名；缺省用服务端账号配置")
   .option(
     "--cover <mode>",

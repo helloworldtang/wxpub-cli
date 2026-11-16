@@ -1,20 +1,47 @@
-import { describe, expect, it } from "vitest";
+import { describe, it, expect } from "vitest";
+import { readArticle, resolveTitle, resolveDigest } from "../src/article.js";
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import { resolveTitle } from "../src/article.js";
-
-describe("标题定夺", () => {
-  it("显式 --title 优先", () => {
-    expect(resolveTitle("显式标题", { content: "# 正文H1" })).toBe("显式标题");
+describe("article front-matter（元数据随文件走）", () => {
+  it("解析 --- 块的 title/digest 并从正文剥离；--digest/--title 仍最高优先", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "wxpub-fm-"));
+    const f = join(dir, "a.md");
+    await writeFile(f, `---\ntitle: 文件头标题\ndigest: 文件头摘要，两下点击 3 秒\n---\n\n# 正文标题\n\n正文内容`, "utf8");
+    const article = await readArticle(f);
+    expect(article.frontTitle).toBe("文件头标题");
+    expect(article.frontDigest).toBe("文件头摘要，两下点击 3 秒");
+    expect(article.h1Title).toBe("正文标题");
+    // 正文剥离 front-matter（元数据不进草稿正文）
+    expect(article.content.startsWith("---")).toBe(false);
+    expect(article.content).toContain("# 正文标题");
+    // 决策链：显式 > front-matter > H1 / 无
+    expect(resolveTitle("显式标题", article)).toBe("显式标题");
+    expect(resolveTitle(undefined, article)).toBe("文件头标题");
+    expect(resolveDigest("显式摘要", article)).toBe("显式摘要");
+    expect(resolveDigest(undefined, article)).toBe("文件头摘要，两下点击 3 秒");
+    await rm(dir, { recursive: true });
   });
 
-  it("--title 缺省时取正文首个 H1", () => {
-    expect(
-      resolveTitle(undefined, { content: "前言\n# 第一个\n## 二级\n# 第二个", h1Title: "第一个" }),
-    ).toBe("第一个");
+  it("无 front-matter 的普通文件不受影响（H1 标题照旧、digest 为空）", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "wxpub-fm2-"));
+    const f = join(dir, "b.md");
+    await writeFile(f, `# 只有标题\n\n正文里的 --- 分隔线不算 front-matter`, "utf8");
+    const article = await readArticle(f);
+    expect(article.h1Title).toBe("只有标题");
+    expect(article.frontDigest).toBeUndefined();
+    expect(article.frontTitle).toBeUndefined();
+    expect(article.content).toContain("--- 分隔线不算");
+    await rm(dir, { recursive: true });
   });
 
-  it("都没有时报可行动的错误", () => {
-    expect(() => resolveTitle(undefined, { content: "没有一级标题" })).toThrow(/--title/);
-    expect(() => resolveTitle("   ", { content: "x", h1Title: "y" })).toThrow(/--title/);
+  it("空串 digest 归一为 undefined（不把空摘要发上服务端）", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "wxpub-fm3-"));
+    const f = join(dir, "c.md");
+    await writeFile(f, `---\ndigest:   \n---\n\n# t`, "utf8");
+    const article = await readArticle(f);
+    expect(resolveDigest(undefined, article)).toBeUndefined();
+    await rm(dir, { recursive: true });
   });
 });

@@ -14,7 +14,7 @@ description: "公众号发文 CLI（wechat-publish-service 客户端）。当用
 | 场景                              | 命令                                                        |
 | --------------------------------- | ----------------------------------------------------------- |
 | 给公众号写文章（先拉调性）        | `wxpub --json tone -a <账号>`                               |
-| 投递文章到草稿箱                  | `wxpub --json publish -a <账号> -f <md文件>`                |
+| 投递文章到草稿箱                  | `wxpub --json publish -a <账号> -f <md文件>`（摘要随文件 front-matter 或 `--digest`；缺摘要有 ⚠ 回显） |
 | 给文章生成配图                    | `wxpub --json illustrate -a <账号> -f <md文件>`             |
 | 上传本地图片做插图                | `wxpub --json image -a <账号> -f <图片>`                    |
 | 查账号默认主题 / 素材             | `wxpub theme -a <账号>` / `wxpub materials -a <账号>`       |
@@ -29,7 +29,7 @@ description: "公众号发文 CLI（wechat-publish-service 客户端）。当用
 ## 标准工作流（写文全链路）
 
 1. `wxpub --json tone -a <账号>` —— 取 persona（主笔人设）+ style_rules（结构规则）+ 字数区间，**注入写作上下文后再动笔**；`tone:null` 表示该号未绑定，按用户口述要求写
-2. 按调性写 markdown，存成文件（标题写进首个 `# 一级标题`，publish 会自动取）
+2. 按调性写 markdown，存成文件。元数据随文件走（推荐 front-matter）：文件头 `---\ntitle: ...\ndigest: ...\n---`，publish 自动取用并从正文剥离；不写 front-matter 则标题取首个 `# 一级标题`。**标题 ≤32 字（微信硬限，含空格标点）、digest ≤120 字**
 3. 需要插图时 `wxpub --json illustrate -a <账号> -f 文章.md`，把返回的 `markdown` 字段（`![配图](mmbiz url)`）插到正文合适位置
 4. **投递前过一遍去 AI 腔门禁**：本机装有 `article-deslop` skill 时先跑它（确定性四规则+审稿四问，只提醒不阻断）；没装跳过，不阻塞投递
 5. `wxpub --json publish -a <账号> -f 文章.md` 投递，取 `media_id` 复命，并提醒用户：**已入草稿箱，群发请到公众号后台人工确认**
@@ -42,7 +42,7 @@ description: "公众号发文 CLI（wechat-publish-service 客户端）。当用
 4. **重复投递返回 `duplicate:true` 不是失败**——内容没变被幂等去重，草稿箱还是原来那篇。要强制新建草稿才加 `--force`（须用户明确要求）。
 5. **成功判据看 `media_id`**：`{"ok":true,"media_id":"..."}` 才算投递成功；`ok:false` 或报错时把错误信息原样呈现给用户，不要自行猜测重试。
 6. **只落草稿箱，绝不群发**——发完必须告知用户"请到公众号后台确认群发"，不能宣称"已发布"。
-7. 写长文（>2000 字）时给 digest（分享摘要，≤54 字）；笔名用 `--author` 仅在用户明确指定时传。拿不准摘要时 `wxpub summarize -f 文章.md` 生成候选，但 digest 定稿权在用户。
+7. **投递必带摘要（digest，≤120 字），无条件**——空摘要的草稿在分享卡/会话列表由微信截正文开头，效果差（2026-11-15 kf 号实锤踩坑）。首选写进文件头 front-matter `digest:`（随文件走），投递时也可 `--digest` 覆盖；摘要要有钩子不做目录式，候选可 `wxpub summarize -f 文章.md` 生成但**定稿权在用户**。笔名用 `--author` 仅在用户明确指定时传。
 8. **admin 系命令（accounts/quota/tones/summarize/preview/draft/history）必须先 `wxpub login`**——API Key 通道不支持，会报错指路重登；委托票约 15 分钟过期，中途 401 就让用户重跑 `wxpub login`。
 9. **写作台全链是可选工作流**：用户只说"发这篇"走旧三步（tone→写→publish）即可；明确要走大纲/扩写/门禁/标题候选时才用 `draft` 子命令组（`wxpub draft --help` 看全量）。`draft rm` / `history rm` 无确认，删除前先向用户复述对象。
 
