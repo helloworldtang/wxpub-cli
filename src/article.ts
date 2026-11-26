@@ -2,9 +2,9 @@ import { readFile } from "node:fs/promises";
 
 /** 读取的文章：Markdown 正文 + front-matter/H1 提取的候选元数据。 */
 export interface Article {
-  /** 已剥离 front-matter 块的正文（元数据不进草稿正文） */
+  /** 已剥离 front-matter 块与首行 H1 的正文（标题由草稿标题字段承载，元数据不进正文） */
   content: string;
-  /** 正文首个 `# 一级标题`；无 H1 时为 undefined */
+  /** 正文开头的 `# 一级标题`（无 front-matter title 时的标题来源）；无 H1 时为 undefined */
   h1Title?: string;
   /** front-matter `digest:`；分享摘要的缺省来源 */
   frontDigest?: string;
@@ -27,14 +27,19 @@ function splitFrontMatter(raw: string): { body: string; meta: Record<string, str
   return { body: raw.slice(m[0].length), meta };
 }
 
-/** 读取 Markdown 文件，提取 front-matter 元数据与 H1 标题。 */
+/** 首行 H1：正文开头（允许前置空行/≤3 空格缩进）的 `# 标题`，用于剥离与标题提取。行结束用前瞻断言，不带 /m（避免匹配正文中段的 H1）。 */
+const LEADING_H1 = /^(?:\r?\n)* {0,3}#[ \t]+([^\n]+?)[ \t]*(?=\r?\n|$)/;
+
+/** 读取 Markdown 文件，提取 front-matter 元数据与 H1 标题，并从正文剥离两者。 */
 export async function readArticle(filePath: string): Promise<Article> {
   const raw = await readFile(filePath, "utf8");
   const { body, meta } = splitFrontMatter(raw);
-  const match = body.match(/^#\s+(.+?)\s*$/m);
+  const leading = body.match(LEADING_H1);
+  // 首行 H1 提走做标题后从正文剥离；正文中段的 H1 不动（可能是章节结构）。
+  const fallback = body.match(/^#\s+(.+?)\s*$/m);
   return {
-    content: body,
-    h1Title: match ? match[1].trim() : undefined,
+    content: leading ? body.slice(leading[0].length) : body,
+    h1Title: (leading ?? fallback)?.[1].trim() || undefined,
     frontDigest: meta.digest || undefined,
     frontTitle: meta.title || undefined,
   };
